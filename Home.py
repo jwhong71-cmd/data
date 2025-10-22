@@ -38,6 +38,25 @@ def _read_api_key() -> str:
     return api_key or ""
 
 
+def icon_to_emoji(code: str | None) -> str:
+    """OpenWeather 아이콘 코드를 이모지로 매핑합니다."""
+    if not code:
+        return ""
+    prefix = code[:2]
+    mapping = {
+        "01": "☀️" if code.endswith("d") else "🌙",
+        "02": "🌤️" if code.endswith("d") else "☁️",
+        "03": "☁️",
+        "04": "☁️",
+        "09": "🌧️",
+        "10": "🌧️",
+        "11": "⛈️",
+        "13": "❄️",
+        "50": "🌫️",
+    }
+    return mapping.get(prefix, "")
+
+
 @st.cache_data(ttl=300)
 def fetch_current_weather(city: str, units: str, lang: str, api_key: str):
     """도시명을 지오코딩으로 좌표로 변환한 뒤, 좌표 기반으로 현재 날씨를 조회합니다.
@@ -206,6 +225,7 @@ if city.strip() and api_key:
                     "바람": wind_f.get("speed"),
                     "강수확률": pop * 100,
                     "아이콘": get_icon_url(icon_code) if icon_code else None,
+                    "심볼": icon_to_emoji(icon_code),
                     "설명": desc_f,
                 }
             )
@@ -214,7 +234,7 @@ if city.strip() and api_key:
             df = pd.DataFrame(rows).set_index("시간")
             st.subheader("시간대별 예보 (3시간 간격)")
 
-            # Altair로 아이콘 오버레이된 온도 라인 차트 생성
+            # Altair로 이모지 아이콘이 오버레이된 온도 라인 차트 생성
             df_reset = df.reset_index()
             base = alt.Chart(df_reset).encode(
                 x=alt.X("시간:T", axis=alt.Axis(title=None)),
@@ -232,12 +252,19 @@ if city.strip() and api_key:
             line_feels = (
                 base.mark_line(color="#74c0fc", strokeDash=[4, 2], strokeWidth=1.5).encode(y="체감:Q")
             )
-            icons_chart = base.mark_image(width=22, height=22).encode(y="기온:Q", url="아이콘:N")
-            chart = alt.layer(line_temp, line_feels, icons_chart).resolve_scale(y="shared")
+            # 이모지 텍스트를 온도 라인 위에 표시
+            icons_text = base.mark_text(size=16, dy=-10).encode(y="기온:Q", text="심볼:N")
+            chart = alt.layer(line_temp, line_feels, icons_text).resolve_scale(y="shared")
             st.altair_chart(chart, use_container_width=True)
 
             st.bar_chart(df[["강수확률"]])
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(
+                df,
+                use_container_width=True,
+                column_config={
+                    "아이콘": st.column_config.ImageColumn("아이콘", width="small"),
+                },
+            )
 
         # 원시 데이터 토글
         with st.expander("원시 데이터 보기"):
