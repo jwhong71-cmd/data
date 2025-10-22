@@ -82,14 +82,32 @@ def fetch_current_weather(city: str, units: str, lang: str, api_key: str):
 
 
 @st.cache_data(ttl=86400)
-def resolve_loc(city: str, lang: str, api_key: str):
+def resolve_loc(query: str, lang: str, api_key: str):
+    """지오코딩: 도시 + 동/지역을 결합한 질의문으로 좌표를 구함."""
     client = OpenWeatherClient(api_key=api_key)
-    return client.resolve_city_to_coords(city=city, lang=lang)
+    return client.resolve_city_to_coords(city=query, lang=lang)
+
+
+@st.cache_data(ttl=300)
+def fetch_current_weather_by_coords(lat: float, lon: float, units: str, lang: str, api_key: str):
+    client = OpenWeatherClient(api_key=api_key)
+    return client.get_current_weather_by_coords(lat=lat, lon=lon, units=units, lang=lang)
 
 
 with st.sidebar:
     st.subheader("설정")
-    city = st.text_input("도시 이름", value="Seoul", placeholder="예: Seoul, Busan, Tokyo, New York")
+    city = st.text_input(
+        "도시 이름",
+        value="Seoul",
+        placeholder="예: 서울(Seoul), 부산(Busan), Tokyo, New York",
+    )
+
+    subarea = st.text_input(
+        "동/지역 (선택)",
+        value="",
+        placeholder="예: 역삼동, 서면, 광화문, 현재위치",
+        help="동/구/지역명을 입력하면 도시와 결합해 더 정확하게 검색합니다. '현재위치'는 예시 텍스트로, 브라우저 위치 자동 인식은 지원하지 않습니다.",
+    )
 
     unit_pref = st.selectbox(
         "온도 단위",
@@ -123,7 +141,8 @@ st.markdown("---")
 if city.strip() and api_key:
     try:
         # 1) 위치 해석 및 단위 결정
-        loc = resolve_loc(city=city.strip(), lang=lang, api_key=api_key)
+        query = f"{subarea.strip()}, {city.strip()}" if subarea.strip() else city.strip()
+        loc = resolve_loc(query=query, lang=lang, api_key=api_key)
         if not loc:
             st.error("도시를 찾을 수 없습니다. 다른 표기(영문/현지어)로 시도해 보세요.")
             st.stop()
@@ -133,8 +152,10 @@ if city.strip() and api_key:
             "metric" if "섭씨" in unit_pref else "imperial" if "화씨" in unit_pref else auto_units
         )
 
-        # 2) 현재 날씨
-        data = fetch_current_weather(city=city.strip(), units=units, lang=lang, api_key=api_key)
+        # 2) 현재 날씨 (좌표 기반)
+        data = fetch_current_weather_by_coords(
+            lat=loc["lat"], lon=loc["lon"], units=units, lang=lang, api_key=api_key
+        )
 
         # 기본 필드
         name = data.get("name", city)
