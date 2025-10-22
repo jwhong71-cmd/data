@@ -8,7 +8,8 @@ __pycache__/
 
 # Streamlit
 .streamlit/*.json
-.streamlit/config.toml
+# Streamlit config는 버전관리를 허용 (secrets는 제외)
+!.streamlit/config.toml
 
 # OS/Editor
 .DS_Store
