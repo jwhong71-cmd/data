@@ -15,11 +15,17 @@
 pip install -r requirements.txt
 ```
 
-2) API 키 설정 (둘 중 하나를 선택)
+2) API 키 설정 (둘 중 하나)
 
 - 방법 A: Streamlit Secrets 사용 권장
-	- `.streamlit/secrets.toml` 파일을 만들고 아래와 같이 작성
+	- `.streamlit/secrets.toml` 파일을 만들고 아래와 같이 작성(Top-level 권장)
 	- 절대 깃에 커밋하지 마세요. 이 레포에는 `.gitignore`로 제외되어 있습니다.
+
+```
+OPENWEATHER_API_KEY = "여기에_발급_키를_입력"
+```
+
+	- 참고: 기존에 `[general]` 섹션을 쓰는 예시도 동작합니다.
 
 ```
 [general]

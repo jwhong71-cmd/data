@@ -16,10 +16,13 @@ st.caption("OpenWeather API + Streamlit")
 
 
 def _read_api_key() -> str:
-    # 1) Streamlit secrets 우선
+    # 1) Streamlit secrets 우선 (top-level 또는 [general] 지원)
     api_key = None
     try:
-        api_key = st.secrets.get("OPENWEATHER_API_KEY")
+        if "OPENWEATHER_API_KEY" in st.secrets:
+            api_key = st.secrets["OPENWEATHER_API_KEY"]
+        elif "general" in st.secrets and "OPENWEATHER_API_KEY" in st.secrets["general"]:
+            api_key = st.secrets["general"]["OPENWEATHER_API_KEY"]
     except Exception:
         api_key = None
 
