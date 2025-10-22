@@ -90,6 +90,31 @@ class OpenWeatherClient:
         }
         return self._request("weather", params)
 
+    def get_forecast_by_coords(self, lat: float, lon: float, units: str = "metric", lang: str = "kr") -> Dict[str, Any]:
+        """
+        5일 / 3시간 간격 예보를 반환합니다.
+        참고: 무료 플랜에서 사용 가능한 /data/2.5/forecast 엔드포인트를 사용합니다.
+        """
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "appid": self.api_key,
+            "units": units,
+            "lang": lang,
+        }
+        # forecast는 base_url 경로 하위
+        return self._request("forecast", params)
+
+
+def choose_units_for_country(country_code: Optional[str]) -> str:
+    """국가 코드 기준으로 단위를 선택합니다.
+
+    - 미국(US), 라이베리아(LR), 미얀마(MM)만 imperial, 그 외는 metric
+    """
+    if not country_code:
+        return "metric"
+    return "imperial" if country_code.upper() in {"US", "LR", "MM"} else "metric"
+
 
 def get_icon_url(icon_code: str) -> str:
     """OpenWeather 아이콘 PNG URL 반환 (@2x)."""
